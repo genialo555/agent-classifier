@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cursorRules version="1.0" sprint="1">
+  <!-- Meta section: Architecture, Libraries & Best Practices -->
+  <cursorMeta>
+    <architecture type="encoder-only" models="gemma-3.1b-it, deepseek-r1-3b" fineTuning="ppo"/>
+    <libraries>
+      <library name="transformers" version=">=4.51,&lt;5" purpose="models &amp; tokenizers"/>
+      <library name="sentence-transformers" version=">=2.7,&lt;4" purpose="embeddings"/>
+      <library name="trl" version=">=0.8,&lt;0.9" purpose="PPO fine-tuning"/>
+      <library name="scikit-learn" version=">=1.4,&lt;1.7" purpose="clustering &amp; metrics"/>
+      <library name="pandas" version=">=2.2,&lt;2.3" purpose="data handling"/>
+      <library name="jaro-winkler" version=">=2,&lt;3" purpose="string similarity"/>
+      <library name="text-unidecode" version="==1.3" purpose="text normalization"/>
+      <library name="accelerate" version=">=0.29,&lt;0.30" purpose="backend/optimizers"/>
+    </libraries>
+    <bestPractices>
+      <item>Normalize text to Unicode NFKC, strip accents, and lowercase before vectorization</item>
+      <item>Use French-specific sentence embedding models (e.g., Sentence-CamemBERT-Large, fr_paraphrase-xlm-r-small-v2) for higher accuracy on monolingual corpora</item>
+      <item>Calibrate merge thresholds with Silhouette &amp; Elbow methods on a stratified sample</item>
+      <item>Limit taxonomy depth to ≤ 6 levels for maintainability and UX</item>
+      <item>Keep immutable node IDs and track parent/child lineage across versions</item>
+      <item>Version rules/scripts in Git with unit tests per rule condition</item>
+      <item>Validate the final graph against XSD to detect cycles and duplicates</item>
+      <item>Ship reproducible environments via Dockerfile or Poetry lockfile</item>
+      <item>**Log Chain-of-Thought (CoT)** : pour chaque action de fusion/split, enregistrer le raisonnement dans `logs/cot.log` (rotation mensuelle, compression gzip).</item>
+    </bestPractices>
+  </cursorMeta>
+
+  <!-- 0. Journaliser le Chain-of-Thought (CoT) -->
+  <cursorRule id="cot-log-0" priority="5">
+    <description>Enregistre dans `logs/cot.log` le détail des heuristiques déclenchées (lexical, embedding, règles) avant action.</description>
+    <condition>
+      <always/>
+    </condition>
+    <action type="log" target="cot" mode="append"/>
+  </cursorRule>
+  <!-- 1. Fusionner les catégories quasiment identiques -->
+  <cursorRule id="sim-merge-1" priority="10">
+    <description>Fusion des catégories dont la similarité lexicale ≥ 0,80 **et** la similarité d'embedding ≥ 0,85.</description>
+    <condition>
+      <lexicalSimilarity metric="jaro-winkler" threshold="0.80"/>
+      <embeddingSimilarity metric="cosine" threshold="0.85" model="sentence-transformers/all-MiniLM-L6-v2"/>
+    </condition>
+    <action type="merge" strategy="keep-left-most"/>
+  </cursorRule>
+  <!-- 2. Fusionner les synonymes inter-domaines -->
+  <cursorRule id="syn-merge-2" priority="20">
+    <description>Fusion basée sur une liste de synonymes issues de WordNet + embeddings ≥ 0,83.</description>
+    <condition>
+      <synonymList source="wordnet"/>
+      <embeddingSimilarity metric="cosine" threshold="0.83" model="gemma-3.1b-it"/>
+    </condition>
+    <action type="merge" strategy="create-alias"/>
+  </cursorRule>
+  <!-- 3. Marquer pour revue humaine -->
+  <cursorRule id="flag-review-3" priority="30">
+    <description>Catégories avec similarité comprise entre 0,60 et 0,83.</description>
+    <condition>
+      <embeddingSimilarity metric="cosine" min="0.60" max="0.83"/>
+    </condition>
+    <action type="flag" level="needs_review"/>
+  </cursorRule>
+  <!-- 4. Séparer les catégories fortement divergentes -->
+  <cursorRule id="diff-split-4" priority="40">
+    <description>Étiquettes dont la similarité d'embedding ≤ 0,30.</description>
+    <condition>
+      <embeddingSimilarity metric="cosine" threshold="0.30" comparator="leq"/>
+    </condition>
+    <action type="split"/>
+  </cursorRule>
+  <!-- 5. Détecter les doublons exacts après normalisation -->
+  <cursorRule id="dup-merge-5" priority="50">
+    <description>Doublons exacts (après normalisation Unicode NFKC, suppression accents, lower-case).</description>
+    <condition>
+      <normalizedEquality normalizer="nfkc-lower-noaccents"/>
+    </condition>
+    <action type="merge" strategy="deduplicate"/>
+  </cursorRule>
+  <!-- 6. Rattacher les sous-catégories géographiques -->
+  <cursorRule id="geo-attach-6" priority="60">
+    <description>Une catégorie comportant un topo-terme ISO-3166 est rattachée à sa racine thématique.</description>
+    <condition>
+      <regex pattern=".*\b([A-Z]{2})\b.*" flags="i"/>
+    </condition>
+    <action type="attach" target="parent-by-theme"/>
+  </cursorRule>
+  <!-- 7. Regrouper les dates/époques -->
+  <cursorRule id="time-group-7" priority="70">
+    <description>Les libellés contenant une année ou une tranche chronologique sont regroupés sous la même branche temporelle.</description>
+    <condition>
+      <regex pattern=".*(\d{4}|XIXe|XXe|XXIe).*" flags="i"/>
+    </condition>
+    <action type="group" key="temporal"/>
+  </cursorRule>
+  <!-- 8. Prioriser les labels en français -->
+  <cursorRule id="lang-priority-8" priority="80">
+    <description>Si plusieurs labels existent, conserver le libellé FR comme principal.</description>
+    <condition>
+      <language iso="fr"/>
+    </condition>
+    <action type="promote"/>
+  </cursorRule>
+  <!-- 9. Identifier les catégories orphelines -->
+  <cursorRule id="orphans-9" priority="90">
+    <description>Détecte les nœuds sans parent ni enfant pour revue.</description>
+    <condition>
+      <orphanNode/>
+    </condition>
+    <action type="flag" level="orphan"/>
+  </cursorRule>
+  <!-- 10. Valider la hiérarchie finale -->
+  <cursorRule id="validate-10" priority="100">
+    <description>Exécute des assertions de cohérence (pas de cycles, profondeur ≤ 6, unicité des IDs).</description>
+    <condition>
+      <always/>
+    </condition>
+    <action type="validate" schema="taxonomy.xsd"/>
+  </cursorRule>
+</cursorRules> 
