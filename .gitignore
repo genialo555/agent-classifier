@@ -42,3 +42,12 @@ Thumbs.db
 logs/
 models/
 *.parquet data/classifier_all_groups.csv
+
+# Ignore generated data and model artifacts
+/data/
+/models/
+/logs/
+
+# Cache and temporary files
+__pycache__/
+*.pyc
