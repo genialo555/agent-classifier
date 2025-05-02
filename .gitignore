@@ -1,9 +1,44 @@
-*.pyc
-__pycache__/
-.env
+# Virtual Environment
+.venv/
 venv/
+env/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Logs
+logs/
+*.log
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Data files to ignore (large files)
+*.npy
+*.joblib
+embeddings.npy
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+*.pyc
+.env
 .venv/
 logs/
 models/
-*.npy
 *.parquet data/classifier_all_groups.csv
