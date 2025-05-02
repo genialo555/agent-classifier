@@ -6,4 +6,4 @@ venv/
 logs/
 models/
 *.npy
-*.parquet 
+*.parquet data/classifier_all_groups.csv
