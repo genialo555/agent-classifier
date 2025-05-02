@@ -33,7 +33,20 @@ anisml/                       # Project root
 │   ├── 05_evaluate.py
 │   ├── 06_export.py
 │   ├── 07_train_agent_classifier.py
-│   └── 08_sort_data.py
+│   ├── 08_sort_data.py
+│   ├── 09_export_rules.py
+│   ├── 10_group_compartments.py
+│   ├── 11_topic_grouping.py
+│   ├── 12_classify_group.py
+│   ├── 13_classify_all_groups.py
+│   ├── 14_export_to_excel.py
+│   ├── 15_assign_records.py
+│   ├── 16_create_thematic_excel.py
+│   ├── 17_customize_thematic_excel.py
+│   ├── 18_visualize_themes.py
+│   ├── 19_group_by_veille_type.py
+│   ├── 20_visualize_veille_types.py
+│   └── 21_classify_new_article.py
 ├── requirements.txt          # Strictly pinned Python dependencies
 └── README.md                 # Quick start and overview
 ```  
@@ -153,6 +166,147 @@ anisml/                       # Project root
   python scripts/08_sort_data.py --input data.csv --output data/sorted_data.csv
   ```
 
+### 4.9 09_export_rules.py
+
+- **Purpose:** Export Cursor rules from XML to a CSV summary.
+- **Features:** XML parsing, rule summary with priorities and descriptions.
+- **Usage:**
+  ```bash
+  python scripts/09_export_rules.py --rules .cursor/rules/sprint1.xml --output data/rules_summary.csv
+  ```
+
+### 4.10 10_group_compartments.py
+
+- **Purpose:** Group taxonomy entries into compartments based on merge pairs.
+- **Features:** Builds and exports groupings based on target canonical labels.
+- **Usage:**
+  ```bash
+  python scripts/10_group_compartments.py --taxo data/taxo_raw.csv --merges data/merge_pairs.csv
+  ```
+
+### 4.11 11_topic_grouping.py
+
+- **Purpose:** Group taxonomy labels by semantic similarity to a seed topic.
+- **Features:** Finds and exports all labels related to a specific seed subject.
+- **Usage:**
+  ```bash
+  python scripts/11_topic_grouping.py --subject "santé sécurité au travail" --threshold 0.80
+  ```
+
+### 4.12 12_classify_group.py
+
+- **Purpose:** Use the trained agent classifier to group taxonomy labels around a seed.
+- **Features:** Combines lexical and embedding similarity with ML classification.
+- **Usage:**
+  ```bash
+  python scripts/12_classify_group.py --subject "santé sécurité travail" --prob-threshold 0.7
+  ```
+
+### 4.13 13_classify_all_groups.py
+
+- **Purpose:** Process all canonical seeds to create comprehensive classification groups.
+- **Features:** Batch classification of entries against all seed subjects.
+- **Usage:**
+  ```bash
+  python scripts/13_classify_all_groups.py --model models/agent_classifier.joblib
+  ```
+
+### 4.14 14_export_to_excel.py
+
+- **Purpose:** Combine compartments and classification groups into an Excel workbook.
+- **Features:** Multi-sheet Excel export with summary statistics.
+- **Usage:**
+  ```bash
+  python scripts/14_export_to_excel.py --compartments data/compartments.csv --classifier_groups data/classifier_all_groups.csv
+  ```
+
+### 4.15 15_assign_records.py
+
+- **Purpose:** Assign each record to taxonomy labels using trained classifier.
+- **Features:** Predicts best matches for records based on title similarity.
+- **Usage:**
+  ```bash
+  python scripts/15_assign_records.py --records data/sorted_data.csv --title-col 1
+  ```
+
+### 4.16 16_create_thematic_excel.py
+
+- **Purpose:** Automatically identify major themes in taxonomy and generate Excel with one sheet per theme.
+- **Features:** 
+  - Uses K-means clustering on embeddings to detect thematic groups
+  - Automatically names themes based on frequent words in each cluster
+  - Creates one Excel sheet per theme with summary statistics
+- **Usage:**
+  ```bash
+  python scripts/16_create_thematic_excel.py --taxo data/taxo_raw.csv --emb data/embeddings.npy --n-themes 15
+  ```
+
+### 4.17 17_customize_thematic_excel.py
+
+- **Purpose:** Customize the automatically generated thematic Excel with better names and manual reassignments.
+- **Features:**
+  - Allows renaming themes via `theme_mapping.csv` 
+  - Supports manual reassignments of entries between themes via `reassignments.csv`
+  - Generates templates for customization on first run
+- **Usage:**
+  ```bash
+  python scripts/17_customize_thematic_excel.py --input data/thematic_taxonomy.xlsx --output data/thematic_taxonomy_custom.xlsx
+  ```
+
+### 4.18 18_visualize_themes.py
+
+- **Purpose:** Generate visualizations of taxonomy distribution across themes.
+- **Features:**
+  - Creates bar charts showing entry counts per theme
+  - Generates pie charts for proportion visualization
+  - Provides metrics on theme distribution and balance
+- **Usage:**
+  ```bash
+  python scripts/18_visualize_themes.py --input data/thematic_taxonomy_custom.xlsx --top 15
+  ```
+
+### 4.19 19_group_by_veille_type.py
+
+- **Purpose:** Group entries by their type de veille and create Excel workbook with one sheet per type.
+- **Features:**
+  - Analyzes original data.csv to extract "type de veille" classifications
+  - Automatically detects the typedeveille column with normalization
+  - Creates one Excel sheet per veille type with all corresponding entries
+- **Usage:**
+  ```bash
+  python scripts/19_group_by_veille_type.py --input data.csv --output data/veille_types.xlsx
+  ```
+
+### 4.20 20_visualize_veille_types.py
+
+- **Purpose:** Generate visualizations of taxonomy distribution across veille types.
+- **Features:**
+  - Creates horizontal bar charts for better readability of long type names
+  - Generates treemap visualizations (requires `squarify` package)
+  - Displays count and percentage metrics for each type
+- **Usage:**
+  ```bash
+  python scripts/20_visualize_veille_types.py --input data/veille_types.xlsx --top 20
+  ```
+
+### 4.21 21_classify_new_article.py
+
+- **Purpose:** Classify a new article into the most appropriate theme and type de veille.
+- **Features:**
+  - Extracts keywords and key phrases from article text
+  - Creates a composite embedding that captures the article's essence
+  - Compares with existing taxonomy themes and veille types 
+  - Identifies best matches with confidence scores
+  - Generates visualizations of classification results
+- **Usage:**
+  ```bash
+  # Classify from a file
+  python scripts/21_classify_new_article.py --input path/to/article.txt
+  
+  # Or directly from text
+  python scripts/21_classify_new_article.py --text "Text of the article to classify"
+  ```
+
 ## 5. Logging & Outputs
 
 - **Chain-of-Thought:** `logs/cot.log` records each rule's firing with details.
@@ -161,6 +315,11 @@ anisml/                       # Project root
 - **Aligned taxonomy:** `data/taxonomy_aligned.csv` final product.
 - **Sorted raw data:** `data/sorted_data.csv` for manual inspection.
 - **Classifier model:** `models/agent_classifier.joblib` ready for inference.
+- **Thematic Excel:** `data/thematic_taxonomy.xlsx` with automatically detected themes.
+- **Customized themes:** `data/thematic_taxonomy_custom.xlsx` with renamed themes and reassignments.
+- **Veille types:** `data/veille_types.xlsx` with entries organized by type de veille.
+- **Visualizations:** Various PNG files for distribution analysis.
+- **Article classifications:** `data/article_classification.xlsx` contains analysis of classified articles.
 
 ## 6. Customization & Extension
 
@@ -229,6 +388,11 @@ All merge, split, flag and attach logic is defined in `.cursor/rules/sprint1.xml
 - **Custom Rule Extension:** Rapidly define and integrate new Cursor rules via XML and Python hooks, with unit test scaffolding and CoT logging.
 - **One-Line Pipeline Orchestration:** Execute the full sequence from environment setup to final export in a single command for CI/CD or ad hoc runs.
 - **CI/CD & Automation Ready:** Easily integrate into linting, smoke tests, scheduled tasks, and reporting workflows.
+- **Thematic Organization:** Automatically cluster and organize taxonomy entries into thematic groups using unsupervised learning.
+- **Type de Veille Classification:** Group entries by their declared type de veille categories for domain-specific analysis.
+- **Interactive Customization:** Provide tools for users to rename themes and reassign entries between categories.
+- **Visual Analytics:** Generate informative visualizations of taxonomy distribution across themes and types.
+- **Article Classification:** Automatically analyze and classify new articles by theme and type de veille based on their content.
 
 ## 13. Agent & PPO Fine-Tuning
 
@@ -403,6 +567,119 @@ Below is a quick reference to every CSV file you will encounter in the ANISML pi
   *Inspection-ready raw data.* Produced by `08_sort_data.py`:
   - Same columns as your original `data.csv`, sorted so that rows with `isMatch=True` appear first.
   - Useful for manual review of matched vs. unmatched records.
+
+- **data/theme_mapping.csv**  
+  *Theme renaming configuration.* Created by `17_customize_thematic_excel.py`:
+  - Maps from auto-generated theme names to user-friendly display names.
+  - Editable template for customizing theme organization.
+
+- **data/reassignments.csv**  
+  *Manual entry reassignments.* Created by `17_customize_thematic_excel.py`:
+  - Specifies entries to move from one theme to another.
+  - Format: label_id, label, old_theme, new_theme.
+
+## 18. Excel Artifacts Explained
+The pipeline generates several Excel workbooks for different organizational purposes:
+
+- **data/taxonomy_groups.xlsx**  
+  *Basic taxonomy grouping.* Produced by `14_export_to_excel.py`:
+  - Contains compartments from merge operations
+  - Groups based on classifier results
+
+- **data/record_classification.xlsx**  
+  *Record assignments.* Produced by `15_assign_records.py`:
+  - Links each record to taxonomy classifications
+  - Includes confidence scores from the classifier
+
+- **data/thematic_taxonomy.xlsx**  
+  *Automatic thematic organization.* Produced by `16_create_thematic_excel.py`:
+  - Creates data-driven themes using K-means clustering
+  - One sheet per detected theme with all related entries
+  - Summary sheet with theme statistics and examples
+
+- **data/thematic_taxonomy_custom.xlsx**  
+  *Customized thematic organization.* Produced by `17_customize_thematic_excel.py`:
+  - Incorporates user-defined theme names and reassignments
+  - Same structure as thematic_taxonomy.xlsx but with user improvements
+
+- **data/veille_types.xlsx**  
+  *Type de veille organization.* Produced by `19_group_by_veille_type.py`:
+  - Organizes entries by their declared type de veille
+  - One sheet per veille type with all related entries
+  - Summary sheet with distribution statistics
+
+## 19. Visualization Outputs
+The pipeline generates several visualization files:
+
+- **data/theme_distribution.png**  
+  *Theme distribution chart.* Produced by `18_visualize_themes.py`:
+  - Bar chart showing counts of entries per theme
+  - Sorted by size for easy analysis
+
+- **data/theme_distribution_pie.png**  
+  *Theme proportion visualization.* Produced by `18_visualize_themes.py`:
+  - Pie chart showing relative sizes of themes
+
+- **data/veille_types_distribution.png**  
+  *Veille type distribution.* Produced by `20_visualize_veille_types.py`:
+  - Horizontal bar chart optimized for long type names
+  - Includes both counts and percentages
+
+- **data/veille_types_distribution_treemap.png**  
+  *Veille type treemap.* Produced by `20_visualize_veille_types.py`:
+  - Hierarchical visualization of type distribution
+  - Area proportional to entry counts
+
+- **data/article_classification.png**  
+  *Article classification results.* Produced by `21_classify_new_article.py`:
+  - Bar charts showing best matching themes and types
+  - Top 5 results with confidence scores
+
+## 20. Article Classification Process
+
+The ANISML pipeline includes a sophisticated article classification system that can analyze and categorize new content automatically:
+
+### 20.1 Approach & Algorithm
+
+1. **Text Analysis**
+   - Extracts relevant keywords using frequency analysis and stopword filtering
+   - Identifies key phrases that best represent the article's focus
+   - Creates a composite embedding that balances full text, keywords, and key phrases
+
+2. **Similarity Computation**
+   - Compares the article embedding against all thematic categories
+   - Measures similarity with all veille types
+   - Calculates weighted scores based on multiple similarity metrics
+
+3. **Confidence Scoring**
+   - Applies weighted formulas to determine the most likely classifications
+   - Prioritizes content similarity over metadata matching
+   - Provides confidence scores for all potential matches
+
+### 20.2 Practical Usage
+
+Researchers and analysts can use the article classification capability for:
+
+- **Content Organization:** Automatically sort incoming articles into thematic folders
+- **Trend Monitoring:** Track which themes and types receive the most new content over time
+- **Recommendation Systems:** Suggest related content based on theme similarities
+- **Automatic Tagging:** Apply taxonomy labels to articles for improved searchability
+
+### 20.3 Performance
+
+The classifier shows particularly good results when:
+- Articles have clear thematic focuses (rather than mixing many topics)
+- Content has sufficient length (500+ characters)
+- The taxonomy is comprehensive and properly organized
+
+### 20.4 Output Analysis
+
+The classification results are provided in multiple formats:
+- Terminal output with best matches and confidence scores
+- Excel workbook with detailed analysis
+- Visualization showing top matches with relative confidence levels
+
+This allows both quick assessment of classification accuracy and detailed investigation of classifier reasoning when needed.
 
 
 
